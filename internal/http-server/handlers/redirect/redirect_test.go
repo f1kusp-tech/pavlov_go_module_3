@@ -15,6 +15,25 @@ import (
 	urlsvc "url-shortener/internal/service/url"
 )
 
+type panickingStorage struct {
+	t *testing.T
+}
+
+func newPanickingStorage(t *testing.T) *panickingStorage {
+	t.Helper()
+	return &panickingStorage{t: t}
+}
+
+func (f *panickingStorage) SaveURL(string, string) (int64, error) {
+	f.t.Fatal("storage must not be called")
+	return 0, nil
+}
+
+func (f *panickingStorage) GetURL(string) (string, error)        { return "", nil }
+func (f *panickingStorage) DeleteURL(string) (int64, error)      { return 0, nil }
+func (f *panickingStorage) UpdateURL(string, string) error       { return nil }
+func (f *panickingStorage) AliasExists(string) (bool, error)     { return false, nil }
+
 type mockResolver struct {
 	url string
 	err error
@@ -51,6 +70,21 @@ func TestRedirect_NotFound(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestRedirect_BadRequestInvalidAlias(t *testing.T) {
+	svc := urlsvc.New(newPanickingStorage(t), 5)
+	handler := redirect.New(slogdiscard.NewDiscardLogger(), svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/bad/slash", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("alias", "bad/slash")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestRedirect_InternalServerError(t *testing.T) {

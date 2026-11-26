@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"url-shortener/internal/http-server/handlers/url/save"
+	"url-shortener/internal/http-server/handlers/url/update"
 	"url-shortener/internal/lib/api"
 	"url-shortener/internal/lib/random"
 )
@@ -61,7 +62,7 @@ func TestURLShortener_Unauthorized(t *testing.T) {
 		Status(http.StatusUnauthorized)
 
 	e.PUT("/url/some-alias").
-		WithJSON(save.Request{URL: gofakeit.URL()}).
+		WithJSON(update.Request{URL: gofakeit.URL()}).
 		Expect().
 		Status(http.StatusUnauthorized)
 

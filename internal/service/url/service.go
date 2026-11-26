@@ -50,7 +50,9 @@ func New(storage URLStorage, aliasLength int) *Service {
 		}
 		return name
 	})
-	_ = v.RegisterValidation("alias", validateAliasTag)
+	if err := v.RegisterValidation("alias", validateAliasTag); err != nil {
+		panic("register alias validation: " + err.Error())
+	}
 
 	return &Service{
 		storage:     storage,

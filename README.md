@@ -26,15 +26,14 @@ docker compose up
 
 ## Конфигурация
 
-Скопируйте `.env.example` в `.env`. Значения должны совпадать с `docker-compose.yml` и `config/local.yaml`:
+Скопируйте `.env.example` в `.env` (**обязательно** — без `.env` не подставятся переменные в `docker-compose` для Postgres).
 
-| Параметр | Значение |
-|----------|----------|
-| HTTP | `localhost:8082` (`config/local.yaml`: `0.0.0.0:8082`) |
-| Postgres host (Docker) | `postgres` (`DB_HOST`) |
-| Postgres port | `5432` |
-| Postgres user / password / DB | `shortener` / `shortener` / `shortener` |
-| Basic Auth | `myuser` / `mypassword` (`AUTH_USER` / `AUTH_PASSWORD`) |
+| Параметр | Где задано | Значение |
+|----------|------------|----------|
+| HTTP | `config/local.yaml` + порт compose | `0.0.0.0:8082` / снаружи `localhost:8082` |
+| Postgres host/port | `config/local.yaml` + `.env` | `postgres` / `5432` (`DB_HOST`, `DB_PORT`) |
+| Postgres user / password / DB | **только `.env`** | `shortener` / `shortener` / `shortener` |
+| Basic Auth | **только `.env`** | `myuser` / `mypassword` |
 
 Postgres в `docker-compose` подставляет `${DB_USER}`, `${DB_PASSWORD}`, `${DB_NAME}` из `.env`. Без Docker укажите `DB_HOST=localhost` в `.env`.
 

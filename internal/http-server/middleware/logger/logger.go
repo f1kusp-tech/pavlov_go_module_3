@@ -10,14 +10,14 @@ import (
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		log := log.With(
+		baseLog := log.With(
 			slog.String("component", "middleware/logger"),
 		)
 
-		log.Info("logger middleware enabled")
+		baseLog.Info("logger middleware enabled")
 
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			entry := log.With(
+			entry := baseLog.With(
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.String("remote_addr", r.RemoteAddr),
