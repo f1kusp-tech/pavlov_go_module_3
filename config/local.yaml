@@ -6,7 +6,4 @@ http_server:
 database:
   host: "postgres"
   port: "5432"
-  user: "shortener"
-  password: "shortener"
-  name: "shortener"
   ssl_mode: "disable"

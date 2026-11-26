@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 
 	"url-shortener/internal/lib/logger/sl"
 	urlsvc "url-shortener/internal/service/url"
@@ -20,7 +21,7 @@ func New(log *slog.Logger, resolver URLResolver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const fn = "handlers.redirect.New"
 
-		log = log.With(
+		log := log.With(
 			slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -32,6 +33,11 @@ func New(log *slog.Logger, resolver URLResolver) http.HandlerFunc {
 		}
 
 		url, err := resolver.GetURL(alias)
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, urlsvc.ErrNotFound) {
 			log.Info("url not found", slog.String("alias", alias))
 			http.NotFound(w, r)

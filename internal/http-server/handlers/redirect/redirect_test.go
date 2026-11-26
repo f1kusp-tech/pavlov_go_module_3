@@ -2,6 +2,7 @@ package redirect_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -50,4 +51,18 @@ func TestRedirect_NotFound(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestRedirect_InternalServerError(t *testing.T) {
+	handler := redirect.New(slogdiscard.NewDiscardLogger(), &mockResolver{err: errors.New("database unavailable")})
+
+	req := httptest.NewRequest(http.MethodGet, "/abc", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("alias", "abc")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
 }

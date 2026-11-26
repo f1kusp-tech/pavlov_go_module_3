@@ -3,6 +3,7 @@ package delete_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,4 +55,18 @@ func TestDelete_NotFound(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestDelete_InternalServerError(t *testing.T) {
+	handler := delete.New(slogdiscard.NewDiscardLogger(), &mockDeleter{err: errors.New("database unavailable")})
+
+	req := httptest.NewRequest(http.MethodDelete, "/url/test", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("alias", "test")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
 }

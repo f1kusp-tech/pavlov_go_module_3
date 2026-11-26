@@ -44,7 +44,6 @@ func (s *Storage) migrate() error {
 		alias TEXT NOT NULL UNIQUE,
 		url TEXT NOT NULL
 	);
-	CREATE INDEX IF NOT EXISTS idx_alias ON url(alias);
 	`)
 	if err != nil {
 		return fmt.Errorf("%s: %w", fn, err)

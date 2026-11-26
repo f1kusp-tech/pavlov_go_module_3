@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -68,4 +69,18 @@ func TestUpdate_NotFound(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestUpdate_InternalServerError(t *testing.T) {
+	handler := update.New(slogdiscard.NewDiscardLogger(), &mockUpdater{err: errors.New("database unavailable")})
+
+	req := httptest.NewRequest(http.MethodPut, "/url/abc", bytes.NewReader([]byte(`{"url":"https://example.com"}`)))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("alias", "abc")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
 }

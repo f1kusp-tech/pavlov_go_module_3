@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 
 	resp "url-shortener/internal/lib/api/response"
 	"url-shortener/internal/lib/logger/sl"
@@ -27,7 +28,7 @@ func New(log *slog.Logger, deleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const fn = "handlers.url.delete.New"
 
-		log = log.With(
+		log := log.With(
 			slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -41,6 +42,12 @@ func New(log *slog.Logger, deleter URLDeleter) http.HandlerFunc {
 		}
 
 		countDeleted, err := deleter.Delete(alias)
+		var validateErr validator.ValidationErrors
+		if errors.As(err, &validateErr) {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, resp.ValidationError(validateErr))
+			return
+		}
 		if errors.Is(err, urlsvc.ErrNotFound) {
 			log.Info("url not found", slog.String("alias", alias))
 			render.Status(r, http.StatusNotFound)

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/go-playground/validator/v10"
 
@@ -30,6 +31,10 @@ type urlInput struct {
 	URL string `json:"url" validate:"required,url"`
 }
 
+type aliasInput struct {
+	Alias string `json:"alias" validate:"required,alias"`
+}
+
 type Service struct {
 	storage     URLStorage
 	aliasLength int
@@ -45,6 +50,7 @@ func New(storage URLStorage, aliasLength int) *Service {
 		}
 		return name
 	})
+	_ = v.RegisterValidation("alias", validateAliasTag)
 
 	return &Service{
 		storage:     storage,
@@ -53,13 +59,34 @@ func New(storage URLStorage, aliasLength int) *Service {
 	}
 }
 
+func validateAliasTag(fl validator.FieldLevel) bool {
+	return isValidAlias(fl.Field().String())
+}
+
+func isValidAlias(alias string) bool {
+	if alias == "" {
+		return false
+	}
+	for _, r := range alias {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func (s *Service) validateAlias(alias string) error {
+	return s.validate.Struct(aliasInput{Alias: alias})
+}
+
 func (s *Service) Save(urlToSave, alias string) (string, error) {
 	if err := s.validate.Struct(urlInput{URL: urlToSave}); err != nil {
 		return "", err
 	}
 
 	if alias != "" {
-		if err := s.validate.Var(alias, "required"); err != nil {
+		if err := s.validateAlias(alias); err != nil {
 			return "", err
 		}
 
@@ -101,6 +128,10 @@ func (s *Service) Save(urlToSave, alias string) (string, error) {
 }
 
 func (s *Service) GetURL(alias string) (string, error) {
+	if err := s.validateAlias(alias); err != nil {
+		return "", err
+	}
+
 	url, err := s.storage.GetURL(alias)
 	if errors.Is(err, storage.ErrURLNotFound) {
 		return "", ErrNotFound
@@ -109,6 +140,10 @@ func (s *Service) GetURL(alias string) (string, error) {
 }
 
 func (s *Service) Delete(alias string) (int64, error) {
+	if err := s.validateAlias(alias); err != nil {
+		return 0, err
+	}
+
 	count, err := s.storage.DeleteURL(alias)
 	if errors.Is(err, storage.ErrURLNotFound) {
 		return 0, ErrNotFound
@@ -117,6 +152,9 @@ func (s *Service) Delete(alias string) (int64, error) {
 }
 
 func (s *Service) Update(alias, urlToSave string) error {
+	if err := s.validateAlias(alias); err != nil {
+		return err
+	}
 	if err := s.validate.Struct(urlInput{URL: urlToSave}); err != nil {
 		return err
 	}
@@ -132,5 +170,12 @@ func AliasLengthFromEnv(aliasLengthStr string) (int, error) {
 	if aliasLengthStr == "" {
 		return 5, nil
 	}
-	return strconv.Atoi(aliasLengthStr)
+	n, err := strconv.Atoi(aliasLengthStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ALIAS_LENGTH: %w", err)
+	}
+	if n <= 0 {
+		return 0, fmt.Errorf("ALIAS_LENGTH must be positive, got %d", n)
+	}
+	return n, nil
 }

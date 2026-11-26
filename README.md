@@ -3,8 +3,8 @@
 ## Быстрый старт
 
 ```bash
-git clone <repository-url>
-cd rest_api_go
+git clone https://github.com/f1kusp-tech/pavlov_go_module_3.git
+cd pavlov_go_module_3
 cp .env.example .env
 docker compose up
 ```
@@ -26,7 +26,17 @@ docker compose up
 
 ## Конфигурация
 
-Переменные окружения — в `.env.example`. Для локального запуска без Docker укажите `DB_HOST=localhost` в `.env` и поднимите Postgres с теми же кредами, что в `docker-compose.yml` и `config/local.yaml`.
+Скопируйте `.env.example` в `.env`. Значения должны совпадать с `docker-compose.yml` и `config/local.yaml`:
+
+| Параметр | Значение |
+|----------|----------|
+| HTTP | `localhost:8082` (`config/local.yaml`: `0.0.0.0:8082`) |
+| Postgres host (Docker) | `postgres` (`DB_HOST`) |
+| Postgres port | `5432` |
+| Postgres user / password / DB | `shortener` / `shortener` / `shortener` |
+| Basic Auth | `myuser` / `mypassword` (`AUTH_USER` / `AUTH_PASSWORD`) |
+
+Postgres в `docker-compose` подставляет `${DB_USER}`, `${DB_PASSWORD}`, `${DB_NAME}` из `.env`. Без Docker укажите `DB_HOST=localhost` в `.env`.
 
 ## Тесты
 
